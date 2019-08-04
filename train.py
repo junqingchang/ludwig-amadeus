@@ -1,14 +1,13 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from pathlib import Path
 import os
-import mido
+import pretty_midi
 import csv
 
 
-maestro_dir = Path('maestro-v2.0.0/')  # maestro-v2.0.0 folder with midi
-output_model_dir = Path('checkpoint/')
+maestro_dir = 'maestro-v2.0.0/'  # maestro-v2.0.0 folder with midi
+output_model_dir = 'checkpoint/'
 if not os.path.exists(output_model_dir):
     os.mkdir(output_model_dir)
 
@@ -30,7 +29,7 @@ class Maestro(Dataset):
         # Ensures split type is correct
         assert self.train_val_test == 'train' or self.train_val_test == 'validation' or self.train_val_test == 'test'
         self.dataset = []  # holds all the data, data in the form of dictionary with keys: 'composer', 'title', 'year', 'midi_name', 'audio_name', 'duration'
-        with open(self.path / 'maestro-v2.0.0.csv', 'r') as f:
+        with open(self.path + 'maestro-v2.0.0.csv', 'r') as f:
             reader = csv.reader(f) # csv reader
             # Omit header line
             first_line = True
@@ -50,25 +49,12 @@ class Maestro(Dataset):
     def __getitem__(self, idx):
         item = self.dataset[idx]
         # Open midi file with mido
-        midi_file = mido.MidiFile(self.path / item['midi_name'])
-
+        midi_file = pretty_midi.PrettyMIDI(self.path + item['midi_name'])
+        piano_midi = midi_file.instruments[0]
+        piano_array = piano_midi.get_piano_roll(fs=30)
         
-        # For reading the whole file out, read https://mido.readthedocs.io/en/latest/midi_files.html to find out more
-        msgs = {'tempo':None, 'time_signature':{}, 'music':[]}
-        for i, track in enumerate(midi_file.tracks):
-            for msg in track:
-                if i == 0:
-                    if msg.type == 'set_tempo':
-                        msgs['tempo'] = msg.tempo
-                    if msg.type == 'time_signature':
-                        msgs['time_signature']['numerator'] = msg.numerator
-                        msgs['time_signature']['denominator'] = msg.denominator
-                        msgs['time_signature']['clocks_per_click'] = msg.clocks_per_click
-                        msgs['time_signature']['notated_32nd_notes_per_beat'] = msg.notated_32nd_notes_per_beat
-                else:
-                    msgs['music'].append(msg)
-
-        return msgs
+        return piano_array
+        
 
 if __name__ == '__main__':
     
