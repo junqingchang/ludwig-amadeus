@@ -1,12 +1,14 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
+import torch.optim as optim
 import os
 import pretty_midi
 import csv
 import numpy as np
 import random
 import json
+from models import *
 
 
 maestro_dir = 'maestro-v2.0.0/'  # maestro-v2.0.0 folder with midi
@@ -76,10 +78,10 @@ class Maestro(Dataset):
                     index_where = np.where(index[1] == time)
                     notes = tuple(index[0][index_where])
                     if notes not in self.ntoi:
-                        self.ntoi[notes] = self.idx_counter
-                        self.iton[self.idx_counter] = notes
+                        self.ntoi[str(notes)] = self.idx_counter
+                        self.iton[self.idx_counter] = str(notes)
                         self.idx_counter += 1
-                    song_notes[time] = self.ntoi[notes]
+                    song_notes[time] = self.ntoi[str(notes)]
                 np.save(self.processed_data +
                         music['midi_name'][5:-4]+'npy', song_notes)
 
@@ -89,29 +91,67 @@ class Maestro(Dataset):
             with open('iton.txt', 'w', encoding='utf-8') as outfile:
                 json.dump(self.iton, outfile)
 
-        self.dataset = os.listdir(self.processed_data)
-        print(self.dataset)
+        self.dataset = sorted(os.listdir(self.processed_data))
+        with open('ntoi.txt', 'r', encoding='utf-8') as infile:
+            self.ntoi = json.load(infile)
+
+        with open('iton.txt', 'r', encoding='utf-8') as infile:
+            self.iton = json.load(infile)
 
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, idx):
-        item = self.dataset[idx]
+        item = np.load(self.processed_data + self.dataset[idx])
         data, target = self.get_random_seq(item)
         return torch.tensor([data]), torch.tensor([target])
 
     def get_random_seq(self, item):
-        assert len(item) > self.max_seq
-        index = random.randint(0, len(item)-self.max_seq-1)
-        data = item[index:index+self.max_seq]
-        target = item[index+1:index+self.max_seq+1]
+        index = random.randint(0, len(item))
+        if index < self.max_seq:
+            data = item[:index-1]
+            data = np.concatenate(([0] * (self.max_seq-len(data)), data))
+        else:
+            data = item[index-1-self.max_seq:index-1]
+        target = item[index]
         return data, target
 
 
-if __name__ == '__main__':
+def train(train_loader, model, optimizer, criterion, iterations, device):
+    model.train()
+    total_loss = 0
+    for i in range(iterations):
+        for data, target in train_loader:
+            print('here')
+            data, target = data.to(device), target.to(device)
+            optimizer.zero_grad()
+            output = model(data)
+            loss = criterion(output, target)
+            total_loss += loss.item()
+            loss.backward()
+            optimizer.step()
+    return total_loss/len(train_loader)
 
-    # TEST FUNCTION
-    maestro = Maestro(maestro_dir, features_dir, raw=True)
-    # data, target = maestro[9]
-    # print(data.shape)
-    # print(target.shape)
+
+if __name__ == '__main__':
+    EPOCHS = 200
+    LEARNING_RATE = 0.01
+    MOMENTUM = 0.9
+    ITERATIONS = 1000
+
+    EMBEDDING_DIM = 128
+    HIDDEN_DIM = 128
+    N_LAYERS = 1
+
+    maestro = Maestro(maestro_dir, features_dir, raw=False)
+    train_loader = DataLoader(maestro, batch_size=8, shuffle=True)
+    print(len(maestro.iton))
+
+    criterion = nn.NLLLoss()
+    model = Seq2Seq(len(maestro.iton), EMBEDDING_DIM, HIDDEN_DIM, N_LAYERS)
+    optimizer = optim.SGD(model.parameters(),
+                          lr=LEARNING_RATE, momentum=MOMENTUM)
+
+    for epoch in range(1, EPOCHS+1):
+        train_loss = train(train_loader, model, optimizer,
+                           criterion, ITERATIONS, device)
