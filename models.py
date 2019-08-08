@@ -16,11 +16,10 @@ class Seq2Seq(nn.Module):
     def forward(self, x):
         print(x.shape)
         e_embedding = self.embedding(x)
+        print(e_embedding.shape)
         _, (ht, ct) = self.encoder(e_embedding)
 
-        d_embedding = self.decoder_embedding(x)
-        print(d_embedding.shape)
-        d_embedding = torch.cat(d_embedding, dim=2)
+        d_embedding = self.decoder_embedding(x[:,-1]).unsqueeze(1)
         print(d_embedding.shape)
         decode = self.decoder(d_embedding, (ht, ct))
         output = self.hidden2notes(decode)

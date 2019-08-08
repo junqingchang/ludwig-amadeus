@@ -76,7 +76,7 @@ class Maestro(Dataset):
                 song_notes = [0] * (times[len(times)-1]+1)
                 for time in times:
                     index_where = np.where(index[1] == time)
-                    notes = tuple(index[0][index_where])
+                    notes = index[0][index_where][-1]
                     if notes not in self.ntoi:
                         self.ntoi[str(notes)] = self.idx_counter
                         self.iton[self.idx_counter] = str(notes)
@@ -104,7 +104,7 @@ class Maestro(Dataset):
     def __getitem__(self, idx):
         item = np.load(self.processed_data + self.dataset[idx])
         data, target = self.get_random_seq(item)
-        return torch.tensor([data]), torch.tensor([target])
+        return torch.tensor(data), torch.tensor(target)
 
     def get_random_seq(self, item):
         index = random.randint(0, len(item))
@@ -143,7 +143,7 @@ if __name__ == '__main__':
     HIDDEN_DIM = 128
     N_LAYERS = 1
 
-    maestro = Maestro(maestro_dir, features_dir, raw=False)
+    maestro = Maestro(maestro_dir, features_dir, raw=True)
     train_loader = DataLoader(maestro, batch_size=8, shuffle=True)
     print(len(maestro.iton))
 
