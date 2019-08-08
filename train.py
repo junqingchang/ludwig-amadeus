@@ -77,11 +77,12 @@ class Maestro(Dataset):
                 for time in times:
                     index_where = np.where(index[1] == time)
                     notes = index[0][index_where][-1]
-                    if notes not in self.ntoi:
+                    if str(notes) not in self.ntoi:
                         self.ntoi[str(notes)] = self.idx_counter
                         self.iton[self.idx_counter] = str(notes)
                         self.idx_counter += 1
                     song_notes[time] = self.ntoi[str(notes)]
+                print(song_notes)
                 np.save(self.processed_data +
                         music['midi_name'][5:-4]+'npy', song_notes)
 
