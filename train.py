@@ -171,7 +171,7 @@ def train(train_loader, model, optimizer, criterion, iterations, device):
 def eval(val_loader, model, criterion, iterations, device):
     model.eval()
     total_loss = 0
-    with torch.no_grad:
+    with torch.no_grad():
         for i in range(iterations):
             for encode_data, decode_data, target in val_loader:
                 encode_data, decode_data, target = encode_data.to(
