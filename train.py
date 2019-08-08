@@ -139,7 +139,7 @@ class Maestro(Dataset):
         return torch.tensor(encode_data), torch.tensor(decode_data), torch.tensor(target)
 
     def get_random_seq(self, item):
-        index = random.randint(0, len(item))
+        index = random.randint(0, len(item)-1)
         if index < self.max_seq:
             encode_data = item[:index-2]
             decode_data = item[index-1]
@@ -196,8 +196,8 @@ if __name__ == '__main__':
     train_loader = DataLoader(maestro, batch_size=8, shuffle=True)
 
     validation = Maestro(maestro_dir, features_dir,
-                         train_val_test='validation', raw=True)
-    val_loader = DataLoader(validation, batch_size=8) 
+                         train_val_test='validation', raw=False)
+    val_loader = DataLoader(validation, batch_size=8)
 
     criterion = nn.NLLLoss()
     model = Seq2Seq(len(maestro.iton), EMBEDDING_DIM, HIDDEN_DIM, N_LAYERS)
@@ -214,16 +214,16 @@ if __name__ == '__main__':
                            criterion, ITERATIONS, device)
         val_loss = eval(val_loader, model, criterion, ITERATIONS, device)
 
-        print('Epoch {}, Train Loss: {}, Validation Loss: {}'.format(epoch, train_loss, val_loss))
+        print('Epoch {}, Train Loss: {}, Validation Loss: {}'.format(
+            epoch, train_loss, val_loss))
 
         if val_loss < best_loss:
             best_loss = val_loss
             torch.save(model, output_model_dir+'music-{}.pt'.format(val_loss))
             early_stop = 0
-        
+
         else:
             early_stop += 1
             if early_stop >= early_stop_threshold:
                 print('Early Stopping')
                 break
-
