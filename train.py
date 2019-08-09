@@ -136,7 +136,7 @@ class Maestro(Dataset):
     def __getitem__(self, idx):
         item = np.load(self.processed_data + self.dataset[idx])
         encode_data, decode_data, target = self.get_random_seq(item)
-        return torch.tensor(encode_data), torch.tensor(decode_data), torch.tensor(target)
+        return torch.tensor(encode_data).long(), torch.tensor(decode_data).long(), torch.tensor(target).long()
 
     def get_random_seq(self, item):
         index = random.randint(0, len(item)-1)
