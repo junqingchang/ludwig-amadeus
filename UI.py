@@ -8,18 +8,46 @@ Created on Thu Aug  8 17:25:48 2019
 from tkinter import *
 from tkinter import filedialog
 from tkinter.ttk import *
+import pretty_midi
+import numpy as np
 
-def file_save(midi):
-    f = filedialog.asksaveasfile(mode='w', defaultextension=".txt") #midi
-    if f is None: # asksaveasfile return `None` if dialog closed with "cancel".
-        return
-    # starts from `1.0`, not `0.0`
-    f.write(midi)
-    f.close() # `()` was missing.
+def write_midi_file_from_generated(generate, midi_file_name = "result.mid", start_index=49, fs=8, max_generated=1000):
+  note_string = [pretty_midi.note_number_to_name(ind_note) for ind_note in generate]
+  array_piano_roll = np.zeros((128,max_generated+1), dtype=np.int16)
+  for index, note in enumerate(note_string[start_index:]):
+    if note == 'e':
+      pass
+    else:
+      splitted_note = note.split(',')
+      for j in splitted_note:
+        array_piano_roll[int(j),index] = 1
+  generate_to_midi = pretty_midi.piano_roll_to_pretty_midi(array_piano_roll, fs=fs)
+  print("Tempo {}".format(generate_to_midi.estimate_tempo()))
+  for note in generate_to_midi.instruments[0].notes:
+    note.velocity = 100
+  generate_to_midi.write(midi_file_name)
 
 def gen_music():
     #gen music here
-    file_save("music")
+    #file_save("music")
+    note = comboNote.get()+comboOctave.get()
+    noteNo = pretty_midi.note_name_to_number(note)
+#    print(note,noteNo,pretty_midi.note_number_to_name(noteNo))
+    generate = generate_from_one_note(noteNo)
+    
+def generate_from_one_note(note='60'):
+  generate = ['0' for i in range(49)]
+  generate += [note]
+  return generate
+
+#def generate_notes(generate, model, unique_notes, max_generated=1000, seq_len=50):
+#  for i in tqdm_notebook(range(max_generated), desc='genrt'):
+#    test_input = np.array([generate])[:,i:i+seq_len]
+#    predicted_note = model.predict(test_input)
+#    random_note_pred = choice(unique_notes+1, 1, replace=False, p=predicted_note[0])
+#    generate.append(random_note_pred[0])
+#  return generate
+
    
 window = Tk()
 window.title("Ludwig Amadeus")
