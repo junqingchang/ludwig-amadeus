@@ -16,7 +16,11 @@ def file_save(midi):
     # starts from `1.0`, not `0.0`
     f.write(midi)
     f.close() # `()` was missing.
-    
+
+def gen_music():
+    #gen music here
+    file_save("music")
+   
 window = Tk()
 window.title("Ludwig Amadeus")
 window.geometry("400x150")
@@ -36,10 +40,10 @@ comboOctave = Combobox(window)
 comboOctave['values']= (0,1,2,3,4,5,6,7,8)
 comboOctave.current(4)
 comboOctave.grid(column=1, row = 2)
-#file_save("test")
+
 
 #buttons
-btn1 = Button(window, text="Generate!", command = file_save)
+btn1 = Button(window, text="Generate!", command = gen_music)
 btn1.grid(column=2, row = 4, padx=5, pady=5)
 
 window.mainloop()
