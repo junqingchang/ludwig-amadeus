@@ -128,15 +128,15 @@ class Maestro(Dataset):
             with open('iton.txt', 'r', encoding='utf-8') as infile:
                 self.iton = json.load(infile)
 
-        self.dataset = sorted(os.listdir(self.processed_data))
-
     def __len__(self):
-        return len(self.dataset)
+        return len(self.info)
 
     def __getitem__(self, idx):
-        item = np.load(self.processed_data + self.dataset[idx])
+        item = np.load(self.processed_data +
+                       self.info[idx]['midi_name'][5:-4]+'npy')
         encode_data, decode_data, target = self.get_random_seq(item)
-        return torch.tensor(encode_data).long(), torch.tensor(decode_data).long(), torch.tensor(target).long()
+        item.close()
+        return torch.tensor(encode_data).long(), torch.tensor([decode_data]).long(), torch.tensor([target]).long()
 
     def get_random_seq(self, item):
         index = random.randint(0, len(item)-1)
@@ -179,25 +179,25 @@ def eval(val_loader, model, criterion, iterations, device):
                 output = model(encode_data, decode_data)
                 loss = criterion(output, target)
                 total_loss += loss.item()
-    return total_loss/len(train_loader)
+    return total_loss/len(val_loader)
 
 
 if __name__ == '__main__':
     EPOCHS = 200
     LEARNING_RATE = 0.01
     MOMENTUM = 0.9
-    ITERATIONS = 1
+    ITERATIONS = 10
 
     EMBEDDING_DIM = 128
     HIDDEN_DIM = 128
     N_LAYERS = 1
 
     maestro = Maestro(maestro_dir, features_dir, raw=False)
-    train_loader = DataLoader(maestro, batch_size=8, shuffle=True)
+    train_loader = DataLoader(maestro, shuffle=True)
 
     validation = Maestro(maestro_dir, features_dir,
                          train_val_test='validation', raw=False)
-    val_loader = DataLoader(validation, batch_size=8)
+    val_loader = DataLoader(validation)
 
     criterion = nn.NLLLoss()
     model = Seq2Seq(len(maestro.iton), EMBEDDING_DIM, HIDDEN_DIM, N_LAYERS)

@@ -18,9 +18,9 @@ class Seq2Seq(nn.Module):
         e_embedding = self.embedding(encode)
         _, (hn, cn) = self.encoder(e_embedding)
 
-        d_embedding = self.decoder_embedding(decode).unsqueeze(1)
+        d_embedding = self.decoder_embedding(decode)
         decode, _ = self.decoder(d_embedding, (hn[:,-1,:].unsqueeze(1).contiguous(), cn[:,-1,:].unsqueeze(1).contiguous()))
         output = self.hidden2notes(decode)
         tag_scores = F.log_softmax(output, dim=2)
-        tag_scores = tag_scores.transpose(1,2).squeeze(2)
+        tag_scores = tag_scores.transpose(1,2)
         return tag_scores
