@@ -59,8 +59,8 @@ class Maestro(Dataset):
                                       'midi_name': midi_name, 'audio_name': audio_name, 'duration': duration})
 
         if raw and train_val_test == 'train':
-            self.ntoi = {0: 0}  # Dictionary to map the notes
-            self.iton = {0: 0}
+            self.ntoi = {0: 0, 'UNK': 1}  # Dictionary to map the notes
+            self.iton = {0: 0, 1: 'UNK'}
 
             self.idx_counter = 1  # Counter for notes mapping
 
@@ -133,34 +133,35 @@ class Maestro(Dataset):
 
     def __getitem__(self, idx):
         item = np.load(self.processed_data +
-                       self.info[idx]['midi_name'][5:-4]+'npy')
-        encode_data, decode_data, target = self.get_random_seq(item)
-        item.close()
-        return torch.tensor(encode_data).long(), torch.tensor([decode_data]).long(), torch.tensor([target]).long()
+                       self.info[idx]['midi_name'][5:-4]+'npy').astype(int)
+        data, target = self.get_random_seq(item)
+        ctr = 1
+        while len(data) != self.max_seq:
+            data, target = self.get_random_seq(item)
+            # print('stuck {}'.format(ctr))
+            ctr += 1
+        return torch.tensor(data).long(), torch.tensor([target]).long()
 
     def get_random_seq(self, item):
         index = random.randint(0, len(item)-1)
         if index < self.max_seq:
-            encode_data = item[:index-2]
-            decode_data = item[index-1]
-            encode_data = np.concatenate(
-                ([0] * (self.max_seq-len(encode_data)-1), encode_data))
+            data = item[:index-1]
+            data = np.concatenate(
+                ([0] * (self.max_seq-len(data)), data))
         else:
-            encode_data = item[index-1-self.max_seq:index-2]
-            decode_data = item[index-1]
+            data = item[index-1-self.max_seq:index-1]
         target = item[index]
-        return encode_data, decode_data, target
+        return data, target
 
 
 def train(train_loader, model, optimizer, criterion, iterations, device):
     model.train()
     total_loss = 0
     for i in range(iterations):
-        for encode_data, decode_data, target in train_loader:
-            encode_data, decode_data, target = encode_data.to(
-                device), decode_data.to(device), target.to(device)
+        for data, target in train_loader:
+            data, target = data.to(device), target.to(device)
             optimizer.zero_grad()
-            output = model(encode_data, decode_data)
+            output = model(data)
             loss = criterion(output, target)
             total_loss += loss.item()
             loss.backward()
@@ -173,10 +174,9 @@ def eval(val_loader, model, criterion, iterations, device):
     total_loss = 0
     with torch.no_grad():
         for i in range(iterations):
-            for encode_data, decode_data, target in val_loader:
-                encode_data, decode_data, target = encode_data.to(
-                    device), decode_data.to(device), target.to(device)
-                output = model(encode_data, decode_data)
+            for data, target in val_loader:
+                data, target = data.to(device), target.to(device)
+                output = model(data)
                 loss = criterion(output, target)
                 total_loss += loss.item()
     return total_loss/len(val_loader)
@@ -193,11 +193,11 @@ if __name__ == '__main__':
     N_LAYERS = 1
 
     maestro = Maestro(maestro_dir, features_dir, raw=False)
-    train_loader = DataLoader(maestro, shuffle=True)
+    train_loader = DataLoader(maestro, shuffle=True, batch_size=8)
 
     validation = Maestro(maestro_dir, features_dir,
                          train_val_test='validation', raw=False)
-    val_loader = DataLoader(validation)
+    val_loader = DataLoader(validation, batch_size=8)
 
     criterion = nn.NLLLoss()
     model = Seq2Seq(len(maestro.iton), EMBEDDING_DIM, HIDDEN_DIM, N_LAYERS)
