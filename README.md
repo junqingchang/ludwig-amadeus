@@ -11,6 +11,7 @@ data/ (if not using raw)
 checkpoint/
 train.py
 models.py
+UI.py
 requirements.txt
 ntoi.txt (if not using raw)
 iton.txt (if not using raw)
