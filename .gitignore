@@ -4,3 +4,4 @@ data/
 iton.txt
 ntoi.txt
 checkpoint/
+__pycache__/
