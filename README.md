@@ -39,7 +39,7 @@ $ python UI.py
 ```
 
 ## Large Vocabulary (Additional)
-We explored using all possible combinations of notes as well resulting in an ~300k size vocabulary. The resulting model can be tried by first downloading our model at `https://drive.google.com/file/d/1qCr_Bn0CVtJ-AxXUpcX514ywO3TYlSNU/view?usp=sharing` and placing it in `/checkpoint/`. Next run the following
+We explored using all possible combinations of notes as well resulting in an ~300k size vocabulary. The resulting model can be tried by first downloading our model at `https://drive.google.com/file/d/1UtnFuAoyjXPV3CgjY19lA2a2nVJIr6TL/view?usp=sharing` and placing it in `/checkpoint/`. Next run the following
 ```
 $ python generate-large.py --len 100 --notes C4,D4,E4,F4,G4
 ```
